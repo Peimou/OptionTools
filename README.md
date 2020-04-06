@@ -1,10 +1,13 @@
 # OptionTools
-It is my personal python option tool in Python. Most of the codes are the summary of my homework at Columbia Engineering. I appreciate
-professors' effort which greatly help me sharpen my skills. 
+It is my personal option tools in Python. Most of the codes are part of my homework at Columbia 
+Engineering. I really appreciate professors' effort which greatly help me sharpen my skills. I picked 
+some of the most frequently used codes and summarized them into this repo. 
 
-## BStools
-This file includes most frequently used function in BS world, including Greeks and implied Vol. 
+## 1. BStools.py
+This file includes most frequently used function in BS world, including calculations of
+Greeks and implied Vol. 
 
-## LVM
-This file includes some common local Volatilty functions. Currently, I only upload the code of Local Vol binomial tree. I will keep updating
-the Mckean SDE and particle method to this file. 
+## 2. LVM.py
+This file includes some local volatility models. 
+Currently, I only uploaded the code of Local Vol binomial tree and its visualization. 
+I will keep updating my work which will include Mckean SDE and particle method. 
