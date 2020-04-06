@@ -45,11 +45,15 @@ class LVBT(object):
             self.a.sArray[i][i] = f - s ** 2 * sigma ** 2 * self.a.dt / (self.a.sArray[i - 1][i] - f)
             self.sigmaT[i][i] = self.sfunc(self.a.sArray[i][i], self.a.dt * i)
 
+            if self.sigmaT[0][i] <= 0 or self.sigmaT[i][i] <= 0:
+                raise ValueError("Sigma < 0")
+
         self.valid = True
         return self.a.sArray
 
 
     def EuropeanPricing(self, K, type = "call"):
+
         if not self.valid:
             raise ValueError("No available simulation, do 'self.simulation' first")
 
@@ -88,16 +92,17 @@ class LVBT(object):
         return nr
 
 
-    def show(self, xscale = 0.5, yscale = 0.05, grid = False, add_prob = False,
+    def show(self, figsize = (8,8), xscale = 0.5, yscale = 0.05, grid = False, add_prob = False,
              offset = 1.0, nround = 4, lw = 0.5, title = ""):
 
         if not self.valid:
             raise ValueError("No available path, do 'self.simulation' first")
 
+        fig, ax = plt.subplots(1, figsize = figsize)
+
         for i in range(self.a.Nt + 1):
             x = [self.a.dt * i]*(self.a.Nt + 1)
-            plt.scatter(x, self.a.sArray[:,i])
-
+            ax.scatter(x, self.a.sArray[:,i])
 
         if grid:
             for i in range(self.a.Nt):
@@ -105,12 +110,12 @@ class LVBT(object):
                     op = (self.a.dt * i, self.a.sArray[j][i])
                     up = (self.a.dt * (i + 1), self.a.sArray[j][i + 1])
                     dp = (self.a.dt * (i + 1), self.a.sArray[j + 1][i + 1])
-                    plt.plot((op[0], up[0]), (op[1], up[1]), 'k--')
-                    plt.plot((op[0], dp[0]), (op[1], dp[1]), 'k--')
-
+                    ax.plot((op[0], up[0]), (op[1], up[1]), 'k--')
+                    ax.plot((op[0], dp[0]), (op[1], dp[1]), 'k--')
 
         if add_prob:
-            if hasattr(self, "RiskNeutralProb"):
+
+            if not hasattr(self, "RiskNeutralProb"):
                 nr = self.NrProb()
             else:
                 nr = self.RiskNeutralProb
@@ -122,16 +127,16 @@ class LVBT(object):
                     up = (self.a.dt * (i + 1), self.a.sArray[j][i+1] + offset)
                     dp = (self.a.dt * (i + 1), self.a.sArray[j+1][i+1] - offset)
 
-                    plt.annotate(round(p[0],nround), up, ((lw*op[0] + (1-lw)*up[0]),
+                    ax.annotate(round(p[0],nround), up, ((lw*op[0] + (1-lw)*up[0]),
                                                           (lw*op[1] + (1-lw)*up[1])))
-                    plt.annotate(round(p[1],nround), dp, ((lw*op[0] + (1-lw)*dp[0]),
+                    ax.annotate(round(p[1],nround), dp, ((lw*op[0] + (1-lw)*dp[0]),
                                                           (lw*op[1] + (1-lw)*dp[1])))
 
-        plt.xlim((-self.a.dt * xscale, self.a.T + self.a.dt * xscale))
-        plt.ylim((self.a.sArray[-1][-1] * (1 - yscale), self.a.sArray[0][-1] * (1 + yscale)))
+        ax.set_xlim((-self.a.dt * xscale, self.a.T + self.a.dt * xscale))
+        ax.set_ylim((self.a.sArray[-1][-1] * (1 - yscale), self.a.sArray[0][-1] * (1 + yscale)))
 
         if len(title) != 0:
-            plt.title(title)
+            ax.set_title(title)
 
         plt.show()
 
@@ -151,5 +156,5 @@ if __name__ == "__main__":
     c = lvbt.NrProb()
     print(lvbt.EuropeanPricing(98, type = "call"))
     d = lvbt.Eptree
-    lvbt.show(grid = True, add_prob=True, lw =0.7, offset = 2.5)
+    lvbt.show(grid = True, add_prob=True, lw =0.7, offset = 2.5, title = "aaa")
 
