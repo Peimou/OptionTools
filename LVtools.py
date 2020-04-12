@@ -1,5 +1,5 @@
 import numpy as np
-from cores import ArrayTree
+from cores.MC import ArrayBT
 import matplotlib.pyplot as plt
 
 # I should have coded in C++, since python is too slow. Anyway, local vol tree is just a toy.
@@ -11,7 +11,7 @@ class LVBT(object):
     http://emanuelderman.com/the-volatility-smile-and-its-implied-tree/
     '''
     def __init__(self, s0, r, y, T, Nt, sigmafunc):
-        self.a = ArrayTree.ArrayBT(s0, r, y, T, Nt)
+        self.a = ArrayBT(s0, r, y, T, Nt)
         self.sfunc = sigmafunc
         self.sigmaT = np.zeros_like(self.a.sArray)
         self.valid = False
