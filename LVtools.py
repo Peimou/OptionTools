@@ -18,58 +18,59 @@ class LVBT(object):
 
 
     def Simulation(self):
-        self.sigmaT[0][0] = self.sfunc(self.a.sArray[0][0], 0)
-        self.a.sArray[0][1] = self.a.s0 * np.exp(self.sigmaT[0][0] * np.sqrt(self.a.dt))
-        self.a.sArray[1][1] = self.a.s0 * np.exp(-self.sigmaT[0][0] * np.sqrt(self.a.dt))
-        self.sigmaT[0][1] = self.sfunc(self.a.sArray[0][1], self.a.dt)
-        self.sigmaT[1][1] = self.sfunc(self.a.sArray[1][1], self.a.dt)
+        A = self.a
+        self.sigmaT[0][0] = self.sfunc(A.sArray[0][0], 0)
+        A.sArray[0][1] = A.s0 * np.exp(self.sigmaT[0][0] * np.sqrt(A.dt))
+        A.sArray[1][1] = A.s0 * np.exp(-self.sigmaT[0][0] * np.sqrt(A.dt))
+        self.sigmaT[0][1] = self.sfunc(A.sArray[0][1], A.dt)
+        self.sigmaT[1][1] = self.sfunc(A.sArray[1][1], A.dt)
 
-        if self.a.Nt <= 2:
-            return self.a.sArray
+        if A.Nt <= 2:
+            return A.sArray
 
-        for i in range(2, self.a.Nt + 1):
+        for i in range(2, A.Nt + 1):
 
             for j in range(1, i+1):
-                self.a.sArray[j][i] = self.a.sArray[j - 1][i - 2]
-                self.sigmaT[j][i] = self.sfunc(self.a.sArray[j][i], self.a.dt * i)
+                A.sArray[j][i] = A.sArray[j - 1][i - 2]
+                self.sigmaT[j][i] = self.sfunc(A.sArray[j][i], A.dt * i)
 
-            s = self.a.sArray[0][i - 1]
-            f = s * np.exp((self.a.r - self.a.y) * self.a.dt)
+            s = A.sArray[0][i - 1]
+            f = s * np.exp((A.r - A.y) * A.dt)
             sigma = self.sigmaT[0][i - 1]
-            self.a.sArray[0][i] = f + s ** 2 * sigma ** 2 * self.a.dt / (f - self.a.sArray[1][i])
-            self.sigmaT[0][i] = self.sfunc(self.a.sArray[0][i], self.a.dt * i)
+            A.sArray[0][i] = f + s ** 2 * sigma ** 2 * A.dt / (f - A.sArray[1][i])
+            self.sigmaT[0][i] = self.sfunc(A.sArray[0][i], A.dt * i)
 
-            s = self.a.sArray[i-1][i - 1]
-            f = s * np.exp((self.a.r - self.a.y) * self.a.dt)
+            s = A.sArray[i-1][i - 1]
+            f = s * np.exp((A.r - A.y) * A.dt)
             sigma = self.sigmaT[i-1][i - 1]
-            self.a.sArray[i][i] = f - s ** 2 * sigma ** 2 * self.a.dt / (self.a.sArray[i - 1][i] - f)
-            self.sigmaT[i][i] = self.sfunc(self.a.sArray[i][i], self.a.dt * i)
+            A.sArray[i][i] = f - s ** 2 * sigma ** 2 * A.dt / (A.sArray[i - 1][i] - f)
+            self.sigmaT[i][i] = self.sfunc(A.sArray[i][i], A.dt * i)
 
             if self.sigmaT[0][i] <= 0 or self.sigmaT[i][i] <= 0:
                 raise ValueError("Sigma < 0")
 
         self.valid = True
-        return self.a.sArray
+        return A.sArray
 
 
     def EuropeanPricing(self, K, type = "call"):
 
         if not self.valid:
             raise ValueError("No available simulation, do 'self.simulation' first")
-
+        A = self.a
         func = np.vectorize(lambda x: max(x - K, 0) if type.lower() == "call" else max(K - x, 0))
-        ep = np.zeros_like(self.a.sArray)
-        ep[:,-1] = func(self.a.sArray[:,-1])
+        ep = np.zeros_like(A.sArray)
+        ep[:,-1] = func(A.sArray[:,-1])
 
         if not hasattr(self, "RiskNeutralProb"):
             nr = self.NrProb()
         else:
             nr = self.RiskNeutralProb
 
-        for i in range(self.a.Nt-1,-1,-1):
+        for i in range(A.Nt-1,-1,-1):
             for j in range(i+1):
                 p = nr[j][i]
-                ep[j][i] = (p[0] * ep[j][i+1] + p[1] * ep[j+1][i+1]) * np.exp(-self.a.r * self.a.dt)
+                ep[j][i] = (p[0] * ep[j][i+1] + p[1] * ep[j+1][i+1]) * np.exp(-A.r * A.dt)
         self.Eptree = ep
 
         return ep[0][0]
@@ -79,13 +80,13 @@ class LVBT(object):
 
         if not self.valid:
             raise ValueError("No available path, do 'self.simulation' first")
-
-        nr = np.zeros((self.a.Nt + 1, self.a.Nt, 2))
-        for i in range(self.a.Nt-1, -1, -1):
+        A = self.a
+        nr = np.zeros((A.Nt + 1, A.Nt, 2))
+        for i in range(A.Nt-1, -1, -1):
             for j in range(i + 1):
-                s = self.a.sArray[j][i]
-                f = s * np.exp((self.a.r - self.a.y) * self.a.dt)
-                nr[j][i][0] = (f - self.a.sArray[j+1][i+1])/(self.a.sArray[j][i+1] - self.a.sArray[j+1][i+1])
+                s = A.sArray[j][i]
+                f = s * np.exp((A.r - A.y) * A.dt)
+                nr[j][i][0] = (f - A.sArray[j+1][i+1])/(A.sArray[j][i+1] - A.sArray[j+1][i+1])
                 nr[j][i][1] = 1 - nr[j][i][0]
         self.RiskNeutralProb = nr
 
@@ -99,17 +100,17 @@ class LVBT(object):
             raise ValueError("No available path, do 'self.simulation' first")
 
         fig, ax = plt.subplots(1, figsize = figsize)
-
-        for i in range(self.a.Nt + 1):
-            x = [self.a.dt * i]*(self.a.Nt + 1)
-            ax.scatter(x, self.a.sArray[:,i])
+        A = self.a
+        for i in range(A.Nt + 1):
+            x = [A.dt * i]*(A.Nt + 1)
+            ax.scatter(x, A.sArray[:,i])
 
         if grid:
-            for i in range(self.a.Nt):
+            for i in range(A.Nt):
                 for j in range(i+1):
-                    op = (self.a.dt * i, self.a.sArray[j][i])
-                    up = (self.a.dt * (i + 1), self.a.sArray[j][i + 1])
-                    dp = (self.a.dt * (i + 1), self.a.sArray[j + 1][i + 1])
+                    op = (A.dt * i, A.sArray[j][i])
+                    up = (A.dt * (i + 1), A.sArray[j][i + 1])
+                    dp = (A.dt * (i + 1), A.sArray[j + 1][i + 1])
                     ax.plot((op[0], up[0]), (op[1], up[1]), 'k--')
                     ax.plot((op[0], dp[0]), (op[1], dp[1]), 'k--')
 
@@ -120,20 +121,20 @@ class LVBT(object):
             else:
                 nr = self.RiskNeutralProb
 
-            for i in range(self.a.Nt-1, -1, -1):
+            for i in range(A.Nt-1, -1, -1):
                 for j in range(i + 1):
                     p = nr[j][i]
-                    op = (self.a.dt * i, self.a.sArray[j][i])
-                    up = (self.a.dt * (i + 1), self.a.sArray[j][i+1] + offset)
-                    dp = (self.a.dt * (i + 1), self.a.sArray[j+1][i+1] - offset)
+                    op = (A.dt * i, A.sArray[j][i])
+                    up = (A.dt * (i + 1), A.sArray[j][i+1] + offset)
+                    dp = (A.dt * (i + 1), A.sArray[j+1][i+1] - offset)
 
                     ax.annotate(round(p[0],nround), up, ((lw*op[0] + (1-lw)*up[0]),
                                                           (lw*op[1] + (1-lw)*up[1])))
                     ax.annotate(round(p[1],nround), dp, ((lw*op[0] + (1-lw)*dp[0]),
                                                           (lw*op[1] + (1-lw)*dp[1])))
 
-        ax.set_xlim((-self.a.dt * xscale, self.a.T + self.a.dt * xscale))
-        ax.set_ylim((self.a.sArray[-1][-1] * (1 - yscale), self.a.sArray[0][-1] * (1 + yscale)))
+        ax.set_xlim((-A.dt * xscale, A.T + A.dt * xscale))
+        ax.set_ylim((A.sArray[-1][-1] * (1 - yscale), A.sArray[0][-1] * (1 + yscale)))
 
         if len(title) != 0:
             ax.set_title(title)
