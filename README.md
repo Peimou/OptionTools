@@ -4,18 +4,30 @@ Engineering, and I picked up the most frequently used codes and summarized them 
 
 ## Cores
 This file contains basis classes which frequently used in Application parts.
-
+### $MC.py
+This py file contains the base classes of the binomial tree, Monte Carlo simulation, discrete and 
+continuous markov chains.
+### $Radnom.py
+In model calibration, we will frequently use MLE. Therefore, I write an abstract distribution class which
+produce the derivatives and score function of common probability distribution.
 
 ## Numeric
-This file contains all numeric methods used in this tools.
+Currently, this file contains all numeric methods used in this tools.
+
+### $NewtonRaphson.py
+The implementation of famous Newton algo.
 
 
 ## Applications
-### 1. BStools.py
+### $BStools.py
 This file includes most frequently used function in BS world, including calculations of
 Greeks and implied Vol. 
 
-### 2. LVTools.py
+### $LVtools.py
 This file includes some local volatility models. 
 Currently, I only uploaded the code of Local Vol binomial tree and its visualization. 
-I will keep updating my work which will include Mckean SDE and particle method. 
+I will keep updating my work which includes Mckean SDE and particle method. 
+
+# About me
+Looking for job opportunities in quantitative finance. 
+ps3136@columbia.edu

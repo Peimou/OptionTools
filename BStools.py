@@ -5,6 +5,7 @@ from cores.MC import MC_Path
 import matplotlib.pyplot as plt
 import warnings
 
+
 warnings.filterwarnings('error')
 
 
@@ -26,15 +27,41 @@ class BS():
 
     @staticmethod
     def ncdf(x):
+        '''
+        Return the numerical result of cdf given x.
+
+        Reference:
+        ---------
+        https://mathworld.wolfram.com/Erf.html
+        '''
         return (1.0 + erf(x / np.sqrt(2.0))) / 2.0
 
 
     @staticmethod
     def npdf(x):
+        '''
+        Return the value of pdf of Gaussian give x.
+        '''
         return 1/np.sqrt(2 * pi) * np.exp(- np.power(x, 2) / 2)
 
     @staticmethod
     def calc_d1(S, K, r, y, sigma, T):
+        '''
+        Calculate d1 in BS formula.
+
+        Parameters:
+        -----------
+        S: Spot price.
+        K: Strike Price
+        r: interest rate. Under BS world, it is a constant.
+        y: dividend yields. A constant.
+        sigma: volatility. It is a constant as well
+        T: time to maturity.
+
+        Return:
+        -------
+        d_1
+        '''
         if T != 0:
             d1 = (np.log(S / K) + (r - y + np.power(sigma, 2) / 2) * T) / (sigma * np.sqrt(T))
         else:

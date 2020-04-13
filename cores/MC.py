@@ -57,15 +57,20 @@ class MarkovChain(object):
     @Pmatrix.setter
     def Pmatrix(self, matrix):
         if not self.mctype:
-            raise ValueError("P matrix is a property of Discrete Markov Chain")
+            raise ValueError("P matrix is a property of Discrete"
+                             " Markov Chain")
         if len(matrix.shape) == 2:
-            if not np.allclose(np.sum(matrix, axis = 1), np.ones(self.num_state)):
-                raise ValueError("In Invalid Transition matrix. The sum of rows must be 1.")
+            if not np.allclose(np.sum(matrix, axis = 1),
+                               np.ones(self.num_state)):
+                raise ValueError("In Invalid Transition matrix."
+                                 " The sum of rows must be 1.")
             self.__Pmatrix = np.tile(matrix, (self.N_t, 1, 1))
             self.TimeHomogenous = True
         elif len(matrix.shape) == 3 and matrix.shape[0] == self.N_t:
-            if not np.allclose(np.sum(matrix, axis = 1), np.ones((self.N_t, self.num_state))):
-                raise ValueError("In Invalid Transition matrix. The sum of rows must be 1.")
+            if not np.allclose(np.sum(matrix, axis = 1),
+                               np.ones((self.N_t, self.num_state))):
+                raise ValueError("In Invalid Transition matrix. The "
+                                 "sum of rows must be 1.")
             self.TimeHomogenous = False
             self.__Pmatrix = matrix
         else:
@@ -83,7 +88,8 @@ class MarkovChain(object):
         matrix can be 2d function matrix
         '''
         if self.mctype:
-            raise ValueError("A matrix is a property of Continuous Markov Chain")
+            raise ValueError("A matrix is a property of Continuous "
+                             "Markov Chain")
 
         if len(matrix.shape) == 2:
             self.checkAmatrix(matrix, self.num_state)
@@ -101,14 +107,16 @@ class MarkovChain(object):
         if not np.all(np.diag(matrix) <= 0):
             raise ValueError("The diagonal of matrix must be negative")
         if not np.allclose(np.sum(matrix, axis=1), np.zeros(num_state)):
-            raise ValueError("Invalid Transition matrix. The sum of rows must be 0.")
+            raise ValueError("Invalid Transition matrix. The sum of "
+                             "rows must be 0.")
 
 
     def csimulate(self, init_state, rst = None, rss = None,
                   verbose = True):
 
         if not self.TimeHomogenous:
-            raise ValueError("Only numerical matrix is available in this version.")
+            raise ValueError("Only numerical matrix is available in this"
+                             " version.")
 
         state = np.arange(self.num_state, dtype=int)
         lmblist = -np.diag(self.Amatrix)
@@ -133,6 +141,7 @@ class MarkovChain(object):
         us = np.random.rand(2 * nsize)
         index, t = 1, 0
         while(t <= self.T):
+
             if index >= len(self.path): #This should happen rarely
                 self.path = np.r_[self.path, np.empty(nsize, dtype=int)]
                 self.tpath = np.r_[self.tpath, np.empty(nsize, dtype=float)]
