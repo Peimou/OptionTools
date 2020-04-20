@@ -124,6 +124,11 @@ class expoDist(Distribution):
 
 
 
+
+
+
+
+
+
 if __name__ == "__main__":
     a = np.linspace(-10,10,500)
-    G

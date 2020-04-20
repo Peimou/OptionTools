@@ -1,3 +1,8 @@
+"""
+Black-Scholes model assumes the constant interest rate, constant dividend yield, and most importantly, the volatility.
+As the most well-known model in option pricing field, Black-Scholes helps us understand the generation of the price
+process, and has strong economics intuition.
+"""
 import numpy as np
 from numeric import NewtonRaphson as nr
 from math import erf, pi
@@ -6,10 +11,11 @@ import matplotlib.pyplot as plt
 import warnings
 
 
-warnings.filterwarnings('error')
+#warnings.filterwarnings('error')
 
 
 class BS():
+
     def __init__(self,s = None, k = None, r = None, sigma = None, T = None, type = None, **config):
         self.S = s
         self.K = k
@@ -28,7 +34,7 @@ class BS():
     @staticmethod
     def ncdf(x):
         '''
-        Return the numerical result of cdf given x.
+        Return the cumulative density function of cdf given x.
 
         Reference:
         ---------
@@ -55,7 +61,7 @@ class BS():
         K: Strike Price
         r: interest rate. Under BS world, it is a constant.
         y: dividend yields. A constant.
-        sigma: volatility. It is a constant as well
+        sigma: volatility. A constant.
         T: time to maturity.
 
         Return:
@@ -72,6 +78,9 @@ class BS():
     @classmethod
     @np.vectorize
     def calc_bsprice(cls, S, K, r, y, sigma, T, type = "call"):
+        """
+        Classic BS formula
+        """
         d1 = cls.calc_d1(S, K, r, y, sigma, T)
         d2 = d1 - sigma * np.sqrt(T)
         if type.lower() == "call":

@@ -11,6 +11,11 @@ class MC_Path():
         self.N_t = N_t
         self.N_path = N_path
         self.s0 = s0
+        self.isMfunc = True if hasattr(mu, "__call__") else False
+        self.isSfunc = True if hasattr(sigma, "__call__") else False
+
+        self.mu_carg = None
+        self.sigma_carg = None
 
         for item in config.items():
             if hasattr(self, item[0]):

@@ -1,3 +1,7 @@
+"""
+Local Volatility models
+"""
+
 import numpy as np
 from cores.MC import ArrayBT
 import matplotlib.pyplot as plt

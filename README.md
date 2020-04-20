@@ -28,6 +28,12 @@ This file includes some local volatility models.
 Currently, I only uploaded the code of Local Vol binomial tree and its visualization. 
 I will keep updating my work which includes Mckean SDE and particle method. 
 
+### $SVtools.py
+This file contains basic stochastic vol models. The currently supported
+ stochastic vol processes include CIR, OU, and mean-reversion GBM. 
+
+Only MC pricing tools available. I will update FFT methods sometime. 
+
 # About me
 Looking for job opportunities in quantitative finance. 
 ps3136@columbia.edu
