@@ -16,7 +16,7 @@ class Heston(object):
         dzdw = rho
 
         Sometimes, people also use mean reverting GBM to model stochastic volatility.
-        d sigma = alpha(m - sigma)dt + xi sigma dw (OU process)
+        i.e. d sigma = alpha(m - sigma)dt + xi sigma dw (OU process)
 
         Parameters
         ----------
@@ -56,67 +56,68 @@ class Heston(object):
         self.Vmodel = Vmodel
 
     @staticmethod
-    def genCorGuassian(cov_mat, Nt, Npath, neg = True, tol = 1e-8, rs = None):
+    def genCorGaussian(cov_mat, Nt, Npath, neg = True, tol = 1e-8, rs = None):
         Nvar = len(cov_mat)
         u,s,v = np.linalg.svd(cov_mat)
         psd = u @ np.diag(s) @ u.T
-
         if Npath%2 != 0 and neg:
             raise ValueError("Npath must be even if covariate variance reduction  method is used")
         if not np.allclose(psd, cov_mat):
             raise ValueError("Need positive semi-definite covariance matrix")
-
         s[s<tol] = 0
         L = u * np.sqrt(s)
         if not rs:
             np.random.seed(rs)
         if neg:
             cg = np.tile(np.random.normal(size = (Nvar, int(0.5 * Npath) * Nt)), (1,2))
+            cg[:, int(0.5 * Npath) * Nt:] *= -1
         else:
             cg = np.random.normal(size=(Nvar, Npath * Nt))
         cg = L @ cg
         return cg.reshape(Nvar, Npath, Nt)
 
-    @staticmethod
-    @nb.njit()
-    def OUprocess(s0, alpha, mu, sigma, T, path, thres = 1e-5):
-        Npath, Nt = path.shape
-        Nt -= 1
-        path[:, 0] = s0
-        dt = T / Nt
-        for i in range(Nt):
-            path[:, i + 1] = alpha * mu * dt + (1 - alpha * dt ) * path[:, i] \
-                             + sigma * np.sqrt(dt) * path[:, i + 1]
-            path[:, i + 1][path[:, i + 1] < thres] = thres
-        return path
 
     @staticmethod
     @nb.njit()
-    def GBMMRprocess(s0, alpha, mu, sigma, T, path, thres=1e-5):
-        Npath, Nt = path.shape
-        Nt -= 1
-        path[:, 0] = s0
+    def OUprocess(s0, alpha, mu, sigma, T, rpath, thres = 1e-8):
+        Npath, Nt = rpath.shape
+        ppath = np.empty_like(rpath)
+        ppath[:, 0] = s0
         dt = T / Nt
-        for i in range(Nt):
-            path[:, i + 1] = alpha * mu * dt + (1 - alpha * dt + sigma * np.sqrt(dt)
-                                                * path[:, i + 1]) * path[:, i]
+        for i in range(1, Nt):
+            ppath[:, i] = alpha * mu * dt + (1 - alpha * dt ) * ppath[:, i-1] \
+                             + sigma * np.sqrt(dt) * rpath[:, i]
+            ppath[:, i][ppath[:, i] < thres] = thres
+        return ppath
 
-            path[:, i + 1][path[:, i + 1] < thres] = thres
-        return path
 
     @staticmethod
     @nb.njit()
-    def CIRprocess(s0, alpha, mu, sigma, T, path, thres=1e-5):
-        Npath, Nt = path.shape
-        Nt -= 1
-        path[:, 0] = s0
+    def GBMMRprocess(s0, alpha, mu, sigma, T, rpath, thres=1e-8):
+        Npath, Nt = rpath.shape
+        ppath = np.empty_like(rpath)
+        ppath[:, 0] = s0
         dt = T / Nt
-        for i in range(Nt):
-            path[:, i + 1] = alpha * mu * dt + (1 - alpha * dt) * path[:, i] + \
-                             sigma * np.sqrt(dt) * path[:, i + 1] * np.sqrt(path[:, i])
+        for i in range(1, Nt):
+            ppath[:, i] = alpha * mu * dt + (1 - alpha * dt + sigma * np.sqrt(dt)
+                                                * rpath[:, i-1]) * ppath[:, i-1]
+            ppath[:, i][ppath[:, i] < thres] = thres
+        return ppath
 
-            path[:, i + 1][path[:, i + 1] < thres] = thres
-        return path
+
+    @staticmethod
+    @nb.njit()
+    def CIRprocess(s0, alpha, mu, sigma, T, rpath, thres=1e-8):
+        Npath, Nt = rpath.shape
+        ppath = np.empty_like(rpath)
+        ppath[:, 0] = s0
+        dt = T / Nt
+        for i in range(1, Nt):
+            ppath[:, i] = alpha * mu * dt + (1 - alpha * dt) * ppath[:, i-1] + \
+                             sigma * np.sqrt(dt) * rpath[:, i-1] * np.sqrt(ppath[:, i-1])
+            ppath[:, i][ppath[:, i] < thres] = thres
+        return np.sqrt(ppath)
+
 
     @classmethod
     def SV_Path(cls, s0, pmu, vol0, volsigma, targetvol,
@@ -124,7 +125,7 @@ class Heston(object):
                 neg = True, thres = 1e-5):
         dt = T/Nt
         cov = np.diag(np.ones(2)) + np.diag([rho], -1) + np.diag([rho], 1)
-        srv, vrv = cls.genCorGuassian(cov, Nt, Npath, neg)
+        srv, vrv = cls.genCorGaussian(cov, Nt, Npath, neg)
         if Vmodel.lower() == "ou":
             volpath = cls.OUprocess(vol0, alpha, targetvol, volsigma, T, vrv, thres)
         elif Vmodel.lower() == "cir":
@@ -134,7 +135,7 @@ class Heston(object):
         else:
             raise ValueError(f"Volatility model {Vmodel} is not available. Currently, "
                              f"I only support 'GBMMR', 'OU', and 'CIR'.")
-        srv = srv * volpath * np.sqrt(dt) - 0.5 * np.power(volpath, 2) * dt + pmu * dt
+        srv = srv * volpath * np.sqrt(dt) + pmu * dt - 0.5 * np.power(volpath,2) * dt
         spath = np.hstack([np.full((Npath, 1), s0), np.exp(srv)])
         spath = np.cumprod(spath, axis=1)
         return MC_Path(s0, pmu, volpath, T, Nt, Npath, spath)
@@ -153,6 +154,8 @@ class Heston(object):
         s = self._path.Path[:, -1] - K
         if otype.lower() == "put":
             s *= -1
+        s[s<0] = 0
+        s *= np.exp(- self.r * self.T)
         return np.mean(s), np.var(s)/len(s)
 
 
@@ -168,15 +171,30 @@ if __name__ == "__main__":
     # print(np.cov(a[0][1], a[1][1])) #pass
 
     # Path generation
-    s0, r, y = 100, 0.05, 0.01
-    vol0, volsigma = 0.3, 1
-    targetvol = 0.3
-    alpha, rho, T = 1, 0.4, 1
+    # s0, r, y = 100, 0.05, 0.01
+    # vol0, volsigma = 0.3, 1
+    # targetvol = 0.3
+    # alpha, rho, T = 1, 0.4, 1
+    # Nt = 100
+    # Npath = 100000
+    # he = Heston( s0, r, y, vol0, volsigma, targetvol,
+    #             alpha, rho, T, Nt, Npath)
+    # a = he.Simulate()
+    # print(he.MC_EuropeanPricing(K = 100))
+    from BStools import BS
     Nt = 100
-    Npath = 100000
-    he = Heston( s0, r, y, vol0, volsigma, targetvol,
-                alpha, rho, T, Nt, Npath)
-    a = he.Simulate()
-    print(he.MC_EuropeanPricing(K = 100))
+    Npath = 1000
+    heston = Heston(1, 0, 0, 0.16, 0.5, 0.04, 1, -0.3, 1, Nt, Npath, Vmodel="CIR", neg=False)
+    path = heston.Simulate()
+    price, _ = heston.MC_EuropeanPricing(0.95, "call")
+    print(price)
+    vol = BS.calc_implied_vol(price, 1, 0.95, 0, 0, 1, "call")
+    print(f"implied vol: {vol}")
+    # k = 1
+    price, _ = heston.MC_EuropeanPricing(1, "call")
+    print(price)
+    vol = BS.calc_implied_vol(price, 1, 1, 0, 0, 1, "call")
+    print(f"implied vol: {vol}")
+
 
 
