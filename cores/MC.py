@@ -222,20 +222,64 @@ class MarkovChain(object):
 
 
 
-if __name__ == "__main__":
-    mc = MarkovChain(num_state=5, T=15, mctype="C")
-    am = np.random.uniform(0,1,25).reshape(5,5)
-    for i in range(len(am)):
-        am[i][i] -= np.sum(am[i,:])
-    mc.Amatrix = am
-    mc.simulate(1, verbose=False)
-    mc.show((10,4))
+    class MetropolisHasting(object):
+        def __init__(self, F, proposal: Random.Distribution, method: str):
+            if not (hasattr(F, "__call__") and isinstance(proposal, Random.Distribution)):
+                raise AttributeError("F must be function, Proposal distribution must be Distribution object.")
+            if not hasattr(proposal, method):
+                raise AttributeError(f"Distribution {proposal} do not have parameter {method}.")
+            self.F = F
+            self.prop = proposal
+            self.method = method
 
-    mc = MarkovChain(num_state=10, T=1, N_t = 50, mctype="D")
-    pm = np.random.uniform(0, 1, 100).reshape(10, 10)
-    sum_rows = np.sum(pm, axis=1)
-    P = (pm.T / sum_rows).T  # rows should add up to 1
-    mc.Pmatrix = P
-    mc.simulate(1, verbose=False)
-    mc.show((10, 4))
-5
+
+        def AcceptRate(self, xp, x):
+            setattr(self.prop, self.method, xp)
+            num = self.prop.pdf(x = x)
+            setattr(self.prop, self.method, x)
+            den = self.prop.pdf(x = xp)
+            return min(1, self.F(xp) * num / self.F(x) / den)
+
+
+        def simulate(self, init: np.array, N):
+            rv = np.empty((N, *init.shape))
+            rv[0] = init
+            for i in range(1, N):
+                setattr(self.prop, self.method, rv[i - 1])
+                x = rv[i - 1]
+                xp = np.squeeze(self.prop.simulate())
+                if np.random.uniform() < self.AcceptRate(xp, x):
+                    rv[i] = xp
+                else:
+                    rv[i] = x
+            return rv
+
+
+
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    #test MC
+    # mc = MarkovChain(num_state=5, T=15, mctype="C")
+    # am = np.random.uniform(0,1,25).reshape(5,5)
+    # for i in range(len(am)):
+    #     am[i][i] -= np.sum(am[i,:])
+    # mc.Amatrix = am
+    # mc.simulate(1, verbose=False)
+    # mc.show((10,4))
+    #
+    # mc = MarkovChain(num_state=10, T=1, N_t = 50, mctype="D")
+    # pm = np.random.uniform(0, 1, 100).reshape(10, 10)
+    # sum_rows = np.sum(pm, axis=1)
+    # P = (pm.T / sum_rows).T  # rows should add up to 1
+    # mc.Pmatrix = P
+    # mc.simulate(1, verbose=False)
+    # mc.show((10, 4))
+    1

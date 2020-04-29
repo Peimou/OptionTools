@@ -8,15 +8,15 @@ class Distribution(object):
     def pdf(self, **config):
         pass
 
-    @abstractmethod
+
     def cdf(self, **config):
         pass
 
-    @abstractmethod
+
     def mean(self):
         pass
 
-    @abstractmethod
+
     def var(self):
         pass
 
@@ -24,7 +24,7 @@ class Distribution(object):
     def simulate(self, **config):
         pass
 
-    @abstractmethod
+
     def MGF(self, **config):
         pass
     
@@ -122,12 +122,38 @@ class expoDist(Distribution):
         return "Exponential Distribution"
 
 
+class MultiUniform(Distribution):
+    def __init__(self, mu: np.array, eta: np.float64, lower: np.float64, upper: np.float64):
+        self.mu = np.asarray(mu)
+        self.lower = lower
+        self.upper = upper
+        self.eta = eta
+
+    def pdf(self, x):
+        indi = np.all(x - self.mu < self.upper) and np.all(x - self.mu >= self.lower)
+        return np.power(1 / (self.upper - self.lower), len(self.mu)) * int(indi)
+
+    def simulate(self, size=1):
+        return self.mu + self.eta * np.random.uniform(self.lower, self.upper, size=(size, *self.mu.shape))
 
 
+class MultiGaussian(Distribution):
+    def __init__(self, mu: np.array, sigma: np.array):
+        self.mu = np.asarray(mu)
+        self.sigma = np.asarray(sigma)
+        if len(mu) != len(sigma):
+            raise ValueError("The sizes of mu and sigma are different")
+
+    def pdf(self, x):
+        n = len(self.mu)
+        mu = self.mu.reshape(-1,1)
+        x = x.reshape(-1,1)
+        coef = 1 / np.power(2 * np.pi, n / 2) / np.sqrt(np.linalg.det(self.sigma))
+        return coef * np.exp(-0.5*np.squeeze((x - mu).T @ np.linalg.pinv(self.sigma) @ (x - mu)))
 
 
-
-
+    def simulate(self, size=1):
+        return np.random.multivariate_normal(self.mu, self.sigma, size = size)
 
 
 if __name__ == "__main__":
