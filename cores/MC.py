@@ -222,47 +222,37 @@ class MarkovChain(object):
 
 
 
-    class MetropolisHasting(object):
-        def __init__(self, F, proposal: Random.Distribution, method: str):
-            if not (hasattr(F, "__call__") and isinstance(proposal, Random.Distribution)):
-                raise AttributeError("F must be function, Proposal distribution must be Distribution object.")
-            if not hasattr(proposal, method):
-                raise AttributeError(f"Distribution {proposal} do not have parameter {method}.")
-            self.F = F
-            self.prop = proposal
-            self.method = method
+class MetropolisHasting(object):
+    def __init__(self, F, proposal: Random.Distribution, method: str):
+        if not (hasattr(F, "__call__") and isinstance(proposal, Random.Distribution)):
+            raise AttributeError("F must be function, Proposal distribution must be Distribution object.")
+        if not hasattr(proposal, method):
+            raise AttributeError(f"Distribution {proposal} do not have parameter {method}.")
+        self.F = F
+        self.prop = proposal
+        self.method = method
 
 
-        def AcceptRate(self, xp, x):
-            setattr(self.prop, self.method, xp)
-            num = self.prop.pdf(x = x)
-            setattr(self.prop, self.method, x)
-            den = self.prop.pdf(x = xp)
-            return min(1, self.F(xp) * num / self.F(x) / den)
+    def AcceptRate(self, xp, x):
+        setattr(self.prop, self.method, xp)
+        num = self.prop.pdf(x = x)
+        setattr(self.prop, self.method, x)
+        den = self.prop.pdf(x = xp)
+        return min(1, self.F(xp) * num / self.F(x) / den)
 
 
-        def simulate(self, init: np.array, N):
-            rv = np.empty((N, *init.shape))
-            rv[0] = init
-            for i in range(1, N):
-                setattr(self.prop, self.method, rv[i - 1])
-                x = rv[i - 1]
-                xp = np.squeeze(self.prop.simulate())
-                if np.random.uniform() < self.AcceptRate(xp, x):
-                    rv[i] = xp
-                else:
-                    rv[i] = x
-            return rv
-
-
-
-
-
-
-
-
-
-
+    def simulate(self, init: np.array, N):
+        rv = np.empty((N, *init.shape))
+        rv[0] = init
+        for i in range(1, N):
+            setattr(self.prop, self.method, rv[i - 1])
+            x = rv[i - 1]
+            xp = np.squeeze(self.prop.simulate())
+            if np.random.uniform() < self.AcceptRate(xp, x):
+                rv[i] = xp
+            else:
+                rv[i] = x
+        return rv
 
 
 if __name__ == "__main__":
