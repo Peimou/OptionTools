@@ -34,7 +34,3 @@ This file contains basic stochastic volatility models. The currently supported
  stochastic volatility processes include CIR, OU, and mean-reversion GBM. 
 
 Only MC pricing tools available. I will update FFT methods sometime. 
-
-# About me
-Looking for job opportunities in quantitative finance. 
-ps3136@columbia.edu
