@@ -146,7 +146,6 @@ class MarkovChain(object):
         us = np.random.rand(2 * nsize)
         index, t = 1, 0
         while(t <= self.T):
-
             if index >= len(self.path): #This should happen rarely
                 self.path = np.r_[self.path, np.empty(nsize, dtype=int)]
                 self.tpath = np.r_[self.tpath, np.empty(nsize, dtype=float)]
@@ -156,7 +155,6 @@ class MarkovChain(object):
                 if rss != None:
                     np.random.seed(rss)
                 us = np.random.rand(2 * nsize)
-
             cur = self.path[index - 1]
             self.tpath[index] = -1/lmblist[cur] * np.log(ut[index - 1])
             P = -self.Amatrix[cur, :] / self.Amatrix[cur, cur]
@@ -167,7 +165,6 @@ class MarkovChain(object):
                 print(f'Iter {index}: {self.path[index - 1]} --> {self.path[index]} '
                       f'in {self.tpath[index]}')
             index += 1
-
         self.tpath = np.cumsum(self.tpath[:index-1])
         self.path = self.path[:index-1]
         return self.path, self.tpath
@@ -186,7 +183,6 @@ class MarkovChain(object):
         if random_seed != None:
             np.random.seed(random_seed)
         u = np.random.rand(self.N_t)
-
         for i in range(1, self.N_t + 1):
             cur = self.path[i - 1]
             cumP = np.cumsum(self.Pmatrix[i - 1], axis = 1)
@@ -253,6 +249,7 @@ class MetropolisHasting(object):
             else:
                 rv[i] = x
         return rv
+
 
 
 if __name__ == "__main__":

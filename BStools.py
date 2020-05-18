@@ -25,6 +25,8 @@ class BS():
         self.type = type
         self.y = 0
         self.price = None
+        self.jprob = None
+        self.logjsize = None
 
         for item in config.items():
             if hasattr(self, item[0]):
@@ -97,6 +99,20 @@ class BS():
 
     @classmethod
     @np.vectorize
+    def calc_JumpBS(cls, S, K, r, y, jprob, logjsize, sigma, T, type = "call"):
+        barlamb = jprob * np.exp(logjsize)
+        n = np.linspace(0, 50, 51, endpoint=True)
+        drift = r + n*logjsize / T - barlamb + jprob
+        facn = n.copy()
+        facn[0] = 1
+        facn = np.cumprod(facn)
+        weight = np.power(barlamb*T, n)/facn
+        price = cls.calc_bsprice(S,K, drift, y, sigma, T, type)
+        return np.exp(-barlamb * T) * np.sum(weight * price)
+
+
+    @classmethod
+    @np.vectorize
     def calc_vega(cls, S, K, r, y, sigma, T, type = "call"):
         d1 = cls.calc_d1(S, K, r, y, sigma, T)
         return S * np.exp(-y * T) * cls.npdf(d1) * np.sqrt(T)
@@ -150,6 +166,7 @@ class BS():
 
     def theta(self):
         return self.calc_theta(self.S, self.K, self.r, self.y, self.sigma, self.T, self.type)
+
 
 
     @classmethod
@@ -277,10 +294,14 @@ if __name__ == "__main__":
     y = 0.02
     S = 100
     K = 100
-    path = bs.Gaussian_Path(S, mu, sigma, T, 100, 20, "C", 50)
-    c = bs.Replication_Pricing(path, S, K, r, y, 0.4, "call")
+    jprob = 0.8
+    jsize = 0.3
+    #path = bs.Gaussian_Path(S, mu, sigma, T, 100, 20, "C", 50)
+    #c = bs.Replication_Pricing(path, S, K, r, y, 0.4, "call")
+    p = bs.calc_JumpBS(S, K, r, y, jprob, jsize, sigma, T, type = "call")
     print(bs.calc_bsprice(S,K,r,y,sigma,T, "call"))
-    print(np.mean(c))
+    print(p)
+
 
 
 

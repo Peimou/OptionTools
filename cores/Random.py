@@ -1,6 +1,7 @@
 import numpy as np
 from math import erf, pi
 from abc import abstractmethod
+from scipy.stats import multivariate_normal
 
 class Distribution(object):
 
@@ -81,7 +82,11 @@ class Gaussian(Distribution):
         '''
         Score function of Guassian to sigma
         '''
-        return -self.pdf(x)/self.sigma + self.pdf(x) * (x - self.mu)**2/np.power(self.sigma, 3)
+        return -1/self.sigma + (x - self.mu)**2/np.power(self.sigma, 3)
+
+
+    def xSFunc(self, x):
+        return self.muSFunc(x)
 
 
     def __repr__(self):
@@ -123,7 +128,7 @@ class expoDist(Distribution):
 
 
 class MultiUniform(Distribution):
-    def __init__(self, mu: np.array, eta: np.float64, lower: np.float64, upper: np.float64):
+    def __init__(self, mu: np.array, lower: np.float64, upper: np.float64, eta: np.float64 = 1):
         self.mu = np.asarray(mu)
         self.lower = lower
         self.upper = upper
@@ -132,6 +137,7 @@ class MultiUniform(Distribution):
     def pdf(self, x):
         indi = np.all(x - self.mu < self.upper) and np.all(x - self.mu >= self.lower)
         return np.power(1 / (self.upper - self.lower), len(self.mu)) * int(indi)
+
 
     def simulate(self, size=1):
         return self.mu + self.eta * np.random.uniform(self.lower, self.upper, size=(size, *self.mu.shape))
@@ -144,16 +150,66 @@ class MultiGaussian(Distribution):
         if len(mu) != len(sigma):
             raise ValueError("The sizes of mu and sigma are different")
 
+
     def pdf(self, x):
         n = len(self.mu)
         mu = self.mu.reshape(-1,1)
         x = x.reshape(-1,1)
         coef = 1 / np.power(2 * np.pi, n / 2) / np.sqrt(np.linalg.det(self.sigma))
-        return coef * np.exp(-0.5*np.squeeze((x - mu).T @ np.linalg.pinv(self.sigma) @ (x - mu)))
+        return coef * np.exp(-0.5 * np.squeeze((x - mu).T @ np.linalg.pinv(self.sigma) @ (x - mu)))
 
 
     def simulate(self, size=1):
         return np.random.multivariate_normal(self.mu, self.sigma, size = size)
+
+
+    def mean(self):
+        return self.mu
+
+
+    def var(self):
+        return self.sigma
+
+
+    def cdf(self, x, allow_singular=True):
+        if x.shape != self.mu.shape:
+            raise ValueError("The shape of x must be the same with mu.")
+        return multivariate_normal.cdf(x, self.mu, self.sigma, allow_singular)
+
+
+    def MGF(self, t:np.array):
+        if t.shape != self.mu.shape:
+            raise ValueError("The shape of t must be the same with mu.")
+        t = t.reshape(-1,1)
+        mu = self.mu.reshape(-1,1)
+        return np.exp(np.squeeze(t.T@(mu + 0.5 * self.sigma @ t)))
+
+
+    def muSFunc(self, x:np.array):
+        '''
+            Denominator Layout
+        '''
+        if x.shape != self.mu.shape:
+            raise ValueError("The shape of x must be the same with mu.")
+        mu, x = self.mu.reshape(-1,1), x.reshape(-1,1)
+        return np.linalg.pinv(self.sigma) @ (x - mu)
+
+
+    def sigmaSFunc(self, x:np.array):
+        '''
+            Denominator Layout
+        '''
+        if x.shape != self.mu.shape:
+            raise ValueError("The shape of x must be the same with mu.")
+        mu, x = self.mu.reshape(-1,1), x.reshape(-1,1)
+        return 0.5 * self.muSFunc(x) @ self.muSFunc(x).T
+
+
+    def xSFunc(self, x:np.array):
+        return self.muSFunc(x)
+
+
+
 
 
 if __name__ == "__main__":
